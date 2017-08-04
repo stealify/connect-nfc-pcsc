@@ -1,0 +1,21 @@
+{
+  "name": "cardreader-acr122u",
+  "version": "0.0.2",
+  "description": "A Server that polls a ACR122U CardReader then emits Results via WebSockets",
+  "main": "index.js",
+  "scripts": {
+    "installDebs": "sudo apt update && sudo apt install install -y libusb-dev libnfc-dev libpcsclite1 libpcsclite-dev pcscd",
+    "test": "mocha"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "debug": "^2.6.8",
+    "nfc": "^0.3.3",
+    "pcsclite": "git+https://github.com/pokusew/nfc-pcsc.git",
+    "socket.io-client": "^2.0.3"
+  },
+  "devDependencies": {
+    "mocha": "^3.5.0"
+  }
+}
