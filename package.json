@@ -1,6 +1,6 @@
 {
   "name": "cardreader-acr122u",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A Server that polls a ACR122U CardReader then emits Results via WebSockets",
   "main": "index.js",
   "scripts": {
