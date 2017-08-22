@@ -56,28 +56,29 @@ function logCreate(MSG) {
   makeDebug('DRIVER::NFC::STATUS::CHANGE')(MSG);
   return nfcStatusService.create(MSG);
 }
-
+function messageHandler(msg) {
+  makeDebug('DRIVER::NFC::ALL')(msg.msg);
+  if (msg.cmd && msg.cmd === 'EVENT') {
+    var MSG = msg.msg;
+    //socket.emit('nfcTag',msg.tag.buffer)
+    makeDebug('DRIVER::NFC')(MESSAGE);
+    // When MESSAGE is not Updated
+    if (MESSAGE.from !== MSG.from || MESSAGE.status !== MSG.status ) {
+      logCreate(MSG);
+    }
+    MESSAGE = MSG;
+  }
+}
 
 //TODO: Write algorithm to Compact Messages if they are Same By Hour?
 function applyHandler(){
   for (const id in cluster.workers) {
-    cluster.workers[id].on('message', function messageHandler(msg) {
-      makeDebug('DRIVER::NFC::ALL')(msg.msg);
-      if (msg.cmd && msg.cmd === 'EVENT') {
-        var MSG = msg.msg;
-        //socket.emit('nfcTag',msg.tag.buffer)
-        makeDebug('DRIVER::NFC')(MESSAGE);
-        // When MESSAGE is not Updated
-        if (MESSAGE.from !== MSG.from || MESSAGE.status !== MSG.status ) {
-          logCreate(MSG);
-        }
-        MESSAGE = MSG;
-      }
-    });
+    cluster.workers[id].on('message',messageHandler );
   }
 }
 
 //TODO: Write Function to check for the no Card Error and ignore that but post other errors
+/*
 if(cluster.isMaster) {
   cluster.on('exit', function(worker, code, signal) {
     makeDebug('CLUSTER')('Worker ' + worker.process.pid + ' died with code: ' + code + ', and signal: ' + signal);
@@ -91,40 +92,46 @@ if(cluster.isMaster) {
   logCreate(MESSAGE);
 
 } else {
-  const nfc = require('nfc').nfc;
-  const device = new nfc.NFC();
-  var STATUS;
-  try {
-    console.log(Object.keys(device));
-    device.on('read', function(tag) { //console.log(tag); }); device.on('error', function(err) { console.log(err); })
-      // { deviceID: '...', name: '...', uid: '...', type: 0x04 (Mifare Classic) or 0x44 (Mifare Ultralight) }
-      STATUS={ cmd: 'EVENT', msg: createStatus({tag: tag, from: 'cardreader-read' })};
-      process.send(STATUS);
-      if ((!!tag.data) && (!!tag.offset)) {
-        // Scheduling the Reads because they happen in 100 MS or Faster
-        //debug(util.inspect(nfc.parse(tag.data.slice(tag.offset)), { depth: null }));
-        //debug(tag);
-        // TODO: Verify time on server and client
-        //process.send(STATUS);
-      } else {
-        device.start();
-      }
-    })
-      .on('error', function(err) {
+*/
+const nfc = require('nfc').nfc;
+const device = new nfc.NFC();
+var STATUS;
+try {
+  console.log(Object.keys(device));
+  device.on('read', function(tag) { //console.log(tag); }); device.on('error', function(err) { console.log(err); })
+    // { deviceID: '...', name: '...', uid: '...', type: 0x04 (Mifare Classic) or 0x44 (Mifare Ultralight) }
+    STATUS={ cmd: 'EVENT', msg: createStatus({tag: tag, from: 'cardreader-read' })};
+    //process.send(STATUS);
+    messageHandler(STATUS);
+    if ((!!tag.data) && (!!tag.offset)) {
+      // Scheduling the Reads because they happen in 100 MS or Faster
+      //debug(util.inspect(nfc.parse(tag.data.slice(tag.offset)), { depth: null }));
+      //debug(tag);
+      // TODO: Verify time on server and client
+      //process.send(STATUS);
+      //
+    } else {
+      device.start();
+    }
+  })
+    .on('error', function(err) {
       // handle background error;
-        STATUS={ cmd: 'EVENT', msg: createStatus({ from: 'cardreader-worker-error', error: err})};
-        process.send(STATUS);
-        device.start();
-        throw err;
-      });
-    device.start();
-  } catch(e) {
-    STATUS = { cmd: 'EVENT', msg: createStatus({ from: 'cardreader-worker-exit', error: e })};
+      STATUS={ cmd: 'EVENT', msg: createStatus({ from: 'cardreader-worker-error', error: err})};
+      //process.send(STATUS);
+      messageHandler(STATUS);
+      device.start();
+      throw err;
+    });
+  device.start();
 
-    //var STATUS = { cmd: 'EVENT', msg: createStatus({tag: { buffer: new Buffer(10) }, from: 'cardreader-worker' })};
-    //console.log(STATUS);
-    process.send(STATUS);
-    process.exit(0);
-  }
-  // optionally the start function may include the deviceID (e.g., 'pn53x_usb:160:012')
+} catch(e) {
+  STATUS = { cmd: 'EVENT', msg: createStatus({ from: 'cardreader-worker-exit', error: e })};
+  messageHandler(STATUS);
+  //var STATUS = { cmd: 'EVENT', msg: createStatus({tag: { buffer: new Buffer(10) }, from: 'cardreader-worker' })};
+  //console.log(STATUS);
+  //process.send(STATUS);
+  //process.exit(0);
+  throw e;
 }
+// optionally the start function may include the deviceID (e.g., 'pn53x_usb:160:012')
+//} cluster
