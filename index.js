@@ -38,8 +38,14 @@ function createStatus({from,tag,error}) {
     STATUS.status = false;
     STATUS.tag = false;
   } else if (tag !== false) {
-    STATUS.status = 'inserted';
     STATUS.tag = tag;
+    if ((!!tag.data) && (!!tag.offset)) {
+      STATUS.status = 'inserted';
+    } else {
+      STATUS.status = 'ready';
+    }
+
+
   }
   makeDebug('DRIVER::NFC::STATUS')(STATUS);
   return STATUS;
@@ -89,27 +95,29 @@ if(cluster.isMaster) {
   const device = new nfc.NFC();
   var STATUS;
   try {
-    device.on('read', function(tag) {
-    // { deviceID: '...', name: '...', uid: '...', type: 0x04 (Mifare Classic) or 0x44 (Mifare Ultralight) }
+    console.log(Object.keys(device));
+    device.on('read', function(tag) { //console.log(tag); }); device.on('error', function(err) { console.log(err); })
+      // { deviceID: '...', name: '...', uid: '...', type: 0x04 (Mifare Classic) or 0x44 (Mifare Ultralight) }
+      STATUS={ cmd: 'EVENT', msg: createStatus({tag: tag, from: 'cardreader-read' })};
+      process.send(STATUS);
       if ((!!tag.data) && (!!tag.offset)) {
         // Scheduling the Reads because they happen in 100 MS or Faster
         //debug(util.inspect(nfc.parse(tag.data.slice(tag.offset)), { depth: null }));
         //debug(tag);
         // TODO: Verify time on server and client
-        STATUS={ cmd: 'EVENT', msg: createStatus({tag: tag, from: 'cardreader-worker' })};
-        process.send(STATUS);
+        //process.send(STATUS);
       } else {
-
+        device.start();
       }
     })
       .on('error', function(err) {
       // handle background error;
         STATUS={ cmd: 'EVENT', msg: createStatus({ from: 'cardreader-worker-error', error: err})};
         process.send(STATUS);
+        device.start();
         throw err;
-
-      })
-      .start();
+      });
+    device.start();
   } catch(e) {
     STATUS = { cmd: 'EVENT', msg: createStatus({ from: 'cardreader-worker-exit', error: e })};
 
