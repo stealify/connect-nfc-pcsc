@@ -111,7 +111,7 @@ try {
       //process.send(STATUS);
       //
     } else {
-      device.start();
+      //device.start();
     }
   })
     .on('error', function(err) {
@@ -119,7 +119,7 @@ try {
       STATUS={ cmd: 'EVENT', msg: createStatus({ from: 'cardreader-worker-error', error: err})};
       //process.send(STATUS);
       messageHandler(STATUS);
-      device.start();
+      //device.start();
       throw err;
     });
   device.start();
