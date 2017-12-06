@@ -1,5 +1,6 @@
-const cluster = require('cluster');
-//const util = require('util');
+'use strict';
+//https://github.com/direktspeed/nfc-pcsc
+
 const makeDebug = require('debug');
 const config = require('./config');
 
@@ -11,127 +12,81 @@ const feathers = require('feathers-client');
 const socketio = require('feathers-socketio/client');
 
 //,  {  transports: ['websocket'] }
+socket.on('connect',()=>socket.emit('channel',config.channel));
 
 const feathersClient = feathers()
   .configure(socketio(socket, { timeout: 2000 }));
   //.configure(hooks())
 
-var nfcStatusService = feathersClient.service('nfcStatus');
-
-var MESSAGE = {
-  status: 'reader-ready',
-  tag: false,
-  date: new Date().toISOString(),
-  from: 'cardreader-master'
-};
-
-function createStatus({from,tag,error}) {
-  var STATUS = { date: new Date().toISOString(), status: false, tag, from};
-  if (!!error && !!error.stack) {
-    if(error.stack.split('\n')[0].indexOf('unable open NFC')> -1) {
-      STATUS.error = {};
-      STATUS.error.stack = error.stack.split('\n');
-      STATUS.error.name = 'CAN_NOT_OPEN';
-    } else {
-      STATUS.error = error;
-    }
-    STATUS.status = false;
-    STATUS.tag = false;
-  } else if (tag !== false) {
-    STATUS.tag = tag;
-    if ((!!tag.data) && (!!tag.offset)) {
-      STATUS.status = 'inserted';
-    } else {
-      STATUS.status = 'ready';
-    }
+var nfcService = feathersClient.service('cardreaders');
 
 
-  }
-  makeDebug('DRIVER::NFC::STATUS')(STATUS);
-  return STATUS;
+// #############
+// Basic usage
+// - see "Basic usage" section in README for an explanation
+// #############
+
+// without Babel in ES2015
+const { NFC } = require('./dist/index');
+
+const nfc = new NFC(); // optionally you can pass logger
+
+var MSG;
+
+function makeMsg({from,status,card}) {
+  MSG = {
+    channel: config.channel,
+    status,
+    card,
+    date: new Date().toISOString(),
+    from
+  };
+  makeDebug('DRIVER::NFC::'+MSG.from+'::error')(MSG);
+  nfcService.create(MSG);
 }
 
 
-function logCreate(MSG) {
-  makeDebug('DRIVER::NFC::STATUS::CHANGE')(MSG);
-  return nfcStatusService.create(MSG);
-}
-function messageHandler(msg) {
-  makeDebug('DRIVER::NFC::ALL')(msg.msg);
-  if (msg.cmd && msg.cmd === 'EVENT') {
-    var MSG = msg.msg;
-    //socket.emit('nfcTag',msg.tag.buffer)
-    makeDebug('DRIVER::NFC')(MESSAGE);
-    // When MESSAGE is not Updated
-    if (MESSAGE.from !== MSG.from || MESSAGE.status !== MSG.status ) {
-      logCreate(MSG);
-    }
-    MESSAGE = MSG;
-  }
-}
 
-//TODO: Write algorithm to Compact Messages if they are Same By Hour?
-function applyHandler(){
-  for (const id in cluster.workers) {
-    cluster.workers[id].on('message',messageHandler );
-  }
-}
+nfc.on('reader', reader => {
 
-//TODO: Write Function to check for the no Card Error and ignore that but post other errors
-/*
-if(cluster.isMaster) {
-  cluster.on('exit', function(worker, code, signal) {
-    makeDebug('CLUSTER')('Worker ' + worker.process.pid + ' died with code: ' + code + ', and signal: ' + signal);
-    //setTimeout(()=>
-    cluster.fork();
-    //,5000)
-    applyHandler();
+  //console.log(`${reader.reader.name}  device attached`);
+  MSG = {
+    status: 'device::attached',
+    from: reader.reader.name
+  };
+  makeMsg(MSG);
+  // needed for reading tags emulated with Android HCE
+  // custom AID, change according to your Android for tag emulation
+  // see https://developer.android.com/guide/topics/connectivity/nfc/hce.html
+  reader.aid = 'F222222222';
+
+  reader.on('card', card => {
+    // card is object containing following data
+    // [always] String type: TAG_ISO_14443_3 (standard nfc tags like Mifare) or TAG_ISO_14443_4 (Android HCE and others)
+    // [always] String standard: same as type
+    // [only TAG_ISO_14443_3] String uid: tag uid
+    // [only TAG_ISO_14443_4] Buffer data: raw data from select APDU response
+    MSG = { status: 'inserted', card, from: reader.reader.name  };
+    makeMsg(MSG);
   });
 
-  cluster.fork();
-  logCreate(MESSAGE);
+  reader.on('card.off', (card) => {
+    //console.log(`${reader.reader.name}  card removed`, card);
+    MSG = { status: 'removed', card: card, from: reader.reader.name  };
+    makeMsg(MSG);
+  });
 
-} else {
-*/
-const nfc = require('nfc').nfc;
-const device = new nfc.NFC();
-var STATUS;
-try {
-  console.log(Object.keys(device));
-  device.on('read', function(tag) { //console.log(tag); }); device.on('error', function(err) { console.log(err); })
-    // { deviceID: '...', name: '...', uid: '...', type: 0x04 (Mifare Classic) or 0x44 (Mifare Ultralight) }
-    STATUS={ cmd: 'EVENT', msg: createStatus({tag: tag, from: 'cardreader-read' })};
-    //process.send(STATUS);
-    messageHandler(STATUS);
-    if ((!!tag.data) && (!!tag.offset)) {
-      // Scheduling the Reads because they happen in 100 MS or Faster
-      //debug(util.inspect(nfc.parse(tag.data.slice(tag.offset)), { depth: null }));
-      //debug(tag);
-      // TODO: Verify time on server and client
-      //process.send(STATUS);
-      //
-    } else {
-      //device.start();
-    }
-  })
-    .on('error', function(err) {
-      // handle background error;
-      STATUS={ cmd: 'EVENT', msg: createStatus({ from: 'cardreader-worker-error', error: err})};
-      //process.send(STATUS);
-      messageHandler(STATUS);
-      //device.start();
-      throw err;
-    });
-  device.start();
+  reader.on('error', err => {
+    makeDebug(`DRIVER::NFC::${reader.reader.name}::error`)(err);
+  });
 
-} catch(e) {
-  STATUS = { cmd: 'EVENT', msg: createStatus({ from: 'cardreader-worker-exit', error: e })};
-  messageHandler(STATUS);
-  //var STATUS = { cmd: 'EVENT', msg: createStatus({tag: { buffer: new Buffer(10) }, from: 'cardreader-worker' })};
-  //console.log(STATUS);
-  //process.send(STATUS);
-  //process.exit(0);
-  throw e;
-}
-// optionally the start function may include the deviceID (e.g., 'pn53x_usb:160:012')
-//} cluster
+  reader.on('end', () => {
+    MSG = { status: 'device::removed',from: reader.reader.name };
+    makeMsg(MSG);
+  });
+
+});
+
+nfc.on('error', err => {
+  makeDebug('DRIVER::NFC::error')(err);
+});

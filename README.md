@@ -1,14 +1,11 @@
-# cardreader-acr122u
-A Driver that reads tags from acr122u via libnfc and emits on WebSocket Server
+# feathers-nfc-pcsc
+A feathers js Service using pcsc bindings.
 
-uid: '04:c3:1b:22:6b:52:84',
-data: <Buffer 04 b8 f0 c4 22 6b 52 80 9b 48
+Built-in support for auto-reading **card UIDs** and reading tags emulated with [**Android HCE**](https://developer.android.com/guide/topics/connectivity/nfc/hce.html).
 
-data: <Buffer 04 c3 1b 54 22 6b 52 84 9f 48
-'04 b8 f0 c4 22 6b 52 80 9b 48', 'hex'
+> **NOTE:** Reading tag UID and methods for writing and reading tag content **depend on NFC reader commands support**.
+It is tested to work with **ACR122 USB reader** but it should work with **all PC/SC compliant devices**.  
+When detecting tags does not work see [Alternative usage](#alternative-usage).
 
-'04 b8 f0 c4 22 6b 52 80 9b 48'.replace(/ /g,''
-console.log(new Buffer('04 b8 f0 c4 22 6b 52 80 9b 48'.replace(/ /g,''), 'hex').toString())
-���"kR��H
-console.log(new Buffer('04 b8 f0 c4 22 6b 52 80 9b 48'.replace(/ /g,''), 'hex').toString('ASCII'))
-8pD"kR
+This library uses pscslite native bindings [pokusew/node-pcsclite](https://github.com/pokusew/node-pcsclite) under the hood.
+[pokusew/nfc-pcsc](https://github.com/pokusew/nfc-pcsc)
