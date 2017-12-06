@@ -1,4 +1,6 @@
 # feathers-nfc-pcsc
+
+[![Greenkeeper badge](https://badges.greenkeeper.io/direktspeed/feathers-nfc-pcsc.svg)](https://greenkeeper.io/)
 A feathers js Service using pcsc bindings.
 
 Built-in support for auto-reading **card UIDs** and reading tags emulated with [**Android HCE**](https://developer.android.com/guide/topics/connectivity/nfc/hce.html).
