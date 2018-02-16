@@ -30,22 +30,7 @@ export const CONNECT_MODE_CARD = 'CONNECT_MODE_CARD';
 
 class Reader extends EventEmitter {
 
-	reader = null;
-	logger = null;
 
-	connection = null;
-	card = null;
-
-	autoProcessing = true;
-	_aid = null;
-	_parsedAid = null;
-
-	keyStorage = {
-		'0': null,
-		'1': null
-	};
-
-	pendingLoadAuthenticationKey = {};
 
 	static reverseBuffer(src) {
 
@@ -104,10 +89,22 @@ class Reader extends EventEmitter {
 	}
 
 	constructor(reader, logger) {
-
 		super();
-
 		this.reader = reader;
+		this.connection = null;
+		this.card = null;
+	
+		this.autoProcessing = true;
+		this._aid = null;
+		this._parsedAid = null;
+	
+		this.keyStorage = {
+			'0': null,
+			'1': null
+		};
+	
+		this.pendingLoadAuthenticationKey = {};
+		
 
 		if (logger) {
 			this.logger = logger;

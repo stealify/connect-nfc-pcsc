@@ -1,15 +1,20 @@
 {
-	"plugins": [
-		"transform-es2015-modules-commonjs",
-		"transform-object-rest-spread",
-		"transform-async-to-generator",
-		"transform-class-properties"
-	],
+	"presets": [["@babel/preset-env", {
+	"shippedProposals": true,
+	"targets": {
+        "node": "current"
+      }
+    }]],
 	"env": {
-		"test": {
-			"presets": [
-				"@ava/transform-test-files"
-			]
-		}
+	  "production": {
+		"presets": [
+		  "minify",
+		  ["@babel/env", {
+			"targets": {
+			  "node": "current"
+			}
+		  }]
+		]
+	  }
 	}
-}
+  }

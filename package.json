@@ -1,5 +1,5 @@
 {
-  "name": "feathers-nfc-pcsc",
+  "name": "@stealify/connect-nfc-pcsc",
   "version": "0.6.1",
   "description": "Easy reading and writing NFC tags and cards",
   "keywords": [
@@ -14,55 +14,51 @@
     "tag",
     "ultralight"
   ],
-  "homepage": "https://github.com/direktspeed/feathers-nfc-pcsc#readme",
+  "homepage": "https://github.com/stealify/connect-nfc-pcsc#readme",
   "bugs": {
-    "url": "https://github.com/direktspeed/feathers-nfc-pcsc/issues"
+    "url": "https://github.com/stealify/connect-nfc-pcsc/issues"
   },
   "license": "Apache-2.0",
   "author": {
     "name": "Frank Lemanschik",
     "url": "https://github.com/frank-dspeed"
   },
-  "main": "dist/index.js",
+  "main": "src/index.mjs",
   "repository": {
     "type": "git",
-    "url": "https://github.com/direktspeed/feathers-nfc-pcsc.git"
+    "url": "https://github.com/stealify/connect-nfc-pcsc.git"
   },
   "scripts": {
-    "debug": "DEBUG=* node .",
+    "debug": "DEBUG=* WEBSOCKET_SERVER_ADDRESS=http://localhost:3000 CHANNEL=$(hostname) node --experimental-modules src/",
     "deploy": "rsync -avzh --exclude-from='./RSYNC_EXCLUDES' ./ markus:/srv/drivers/cardreader-acr122u && ssh markus DEBUG=* node /srv/peep-server/batch/sync-drivers.js;",
-    "postinstall": "sudo systemctl enable $PWD/cardreader.service && sudo systemctl restart cardreader",
+    "postinstall": "sudo node --experimental-modules ./install.mjs",
     "build": "babel src --out-dir dist",
-    "preinstall": "sudo apt-get install libpcsclite1 libpcsclite-dev pcscd",
-    "example": "node -r babel-register examples/index.js",
-    "example-basic": "node -r babel-register examples/basic.js",
-    "example-desfire": "node -r babel-register examples/desfire.js",
-    "example-from-readme-3": "node -r babel-register examples/from-readme-3.js",
-    "example-led": "node -r babel-register examples/led.js",
-    "example-ndef": "node -r babel-register examples/ndef.js",
-    "example-uid-logger": "node -r babel-register examples/uid-logger.js",
-    "example-without-auto": "node -r babel-register examples/without-auto.js",
+    "postuninstall": "sudo node --experimental-modules ./install.mjs",
+    "preuninstall": "check-node-version --package",
     "test": "cross-env NODE_ENV=test ava test --verbose"
   },
+  "engines": {
+    "node": ">=9.4.0"
+  },
   "dependencies": {
+    "@feathersjs/feathers": "^3.1.2",
+    "@feathersjs/socketio-client": "^1.1.0",
     "@pokusew/pcsclite": "^0.4.17",
-    "debug": "^3.0.0",
-    "feathers-client": "^2.3.0",
-    "socket.io-client": "^2.0.3"
+    "@stealify/import-json": "^1.0.0",
+    "check-node-version": "^3.2.0",
+    "debug": "^3.1.0",
+    "most": "^1.7.3"
   },
   "devDependencies": {
+    "@babel/cli": "^7.0.0-beta.40",
+    "@babel/core": "^7.0.0-beta.40",
+    "@babel/preset-env": "^7.0.0-beta.40",
     "ava": "^0.21.0",
-    "babel-cli": "^6.24.1",
-    "babel-plugin-transform-async-to-generator": "^6.24.1",
-    "babel-plugin-transform-class-properties": "^6.24.1",
-    "babel-plugin-transform-es2015-modules-commonjs": "^6.24.1",
-    "babel-plugin-transform-object-rest-spread": "^6.23.0",
-    "babel-register": "^6.24.1",
-    "chalk": "^2.0.1",
-    "cross-env": "^5.0.1",
-    "mock-require": "^2.0.2",
+    "chalk": "^2.3.1",
+    "cross-env": "^5.1.3",
+    "mock-require": "^3.0.1",
     "prettyjson": "^1.2.1",
-    "winston": "^2.3.1"
+    "winston": "^2.4.0"
   },
   "ava": {
     "require": "babel-register",
